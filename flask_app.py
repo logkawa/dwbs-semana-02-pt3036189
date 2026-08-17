@@ -4,6 +4,8 @@
 from flask import Flask
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'jssb0512nt1915'
+
 
 @app.route('/')
 def hello_world():

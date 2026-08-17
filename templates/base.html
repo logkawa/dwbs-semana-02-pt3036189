@@ -1,21 +1,41 @@
 {% extends "bootstrap/base.html" %}
 
-{% block title %}Avaliação Contínua{% endblock %}
+{% block title %}Flasky{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+{% endblock %}
 
 {% block navbar %}
 <div class="navbar navbar-inverse" role="navigation">
     <div class="container">
         <div class="navbar-header">
-            <a class="navbar-brand" href="/">Avaliação contínua: <strong>Aula 040</strong></a>
+            <a class="navbar-brand" href="/">Flasky</a>
         </div>
+
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
                 <li><a href="/">Home</a></li>
-                <li><a href="/user/Nathalia%20Kawakami/PT3036189/IFSP">Identificação</a></li>
-                <li><a href="/contextorequisicao/Nathalia%20Kawakami">Contexto da requisição</a></li>
             </ul>
         </div>
     </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    {% for message in get_flashed_messages() %}
+    <div class="alert alert-warning">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        {{ message }}
+    </div>
+    {% endfor %}
+
+    {% block page_content %}{% endblock %}
+
 </div>
 {% endblock %}
 
