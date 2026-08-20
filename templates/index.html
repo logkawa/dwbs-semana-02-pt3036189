@@ -7,10 +7,27 @@
 
 <div class="page-header">
     <h1>
-        Hello, {% if name %}{{ name }}{% else %}Stranger{% endif %}!
+        Hello, {% if name %}{{ name }}{% else %}Stranger{% endif %}  {% if lastname %}{{ lastname }}{% else %}Stranger{% endif %}!
     </h1>
+     <h2>
+        A sua Insituição de ensino é {% if institution %}{{ institution }}{% else %}NONE{% endif %}!
+    </h2>
+    <h2>
+        Está cursando a disciplina de {% if discipline %}{{ discipline }}{% else %}NONE{% endif %}!
+    </h2>
+    <h3>
+        O IP do computador remoto é: {% if ip %}{{ ip }}{% else %}NONE{% endif %}!
+    </h3>
+    <h3>
+        O host da aplicação é: {% if host %}{{ host }}{% else %}NONE{% endif %}!
+    </h3>
 </div>
 
 {{ wtf.quick_form(form) }}
+
+<div class="time-info" style="margin-bottom: 30px;">
+    <p>The local date and time is {{ moment(current_time).format('LLL') }}.</p>
+    <p>That was {{ moment(current_time).fromNow(refresh=True) }}.</p>
+</div>
 
 {% endblock %}

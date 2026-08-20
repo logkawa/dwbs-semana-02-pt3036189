@@ -3,7 +3,7 @@ from flask_bootstrap import Bootstrap, url_for
 from flask_moment import Moment
 from datetime import datetime
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
+from wtforms import SelectField, StringField, SubmitField
 from wtforms.validators import DataRequired
 
 
@@ -15,8 +15,12 @@ app.config['SECRET_KEY'] = 'jssb0512nt1915'
 bootstrap = Bootstrap(app)
 moment = Moment(app)
 
-class NameForm(FlaskForm):
+class Form(FlaskForm):
   name = StringField('What is your name?', validators= [DataRequired()])
+  lastname = StringField('What is your last name?', validators= [DataRequired()])
+  institution = StringField('What is your institution?', validators= [DataRequired()])
+  discipline = SelectField('What is your discipline?', choices=[('CS', 'Computer Science'), ('ENG', 'Engineering')], validators= [DataRequired()])
+
   submit = SubmitField('Submit')
 
 @app.errorhandler(404)
@@ -32,14 +36,27 @@ def internal_server_error(e):
 @app.route('/', methods=['GET', 'POST'])
 
 def index():
-  form = NameForm()
+  form = Form()
   if form.validate_on_submit():
     old_name = session.get('name')
     if old_name is not None and old_name != form.name.data:
       flash('Looks like you have changed your name!')
     session['name'] = form.name.data
+    session['lastname'] = form.lastname.data
+    session['institution'] = form.institution.data
+    session['discipline'] = form.discipline.data
     return redirect(url_for('index'))
-  return render_template('index.html', form = form, name = session.get('name'))
+  return render_template(
+      'index.html',
+      form=form,
+      name=session.get('name'),
+      lastname=session.get('lastname'),
+      institution=session.get('institution'),
+      discipline=session.get('discipline'),
+        ip=request.remote_addr,
+        host=request.host,
+      current_time=datetime.utcnow(),
+  )
 
 
 
