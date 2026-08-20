@@ -19,7 +19,7 @@ class Form(FlaskForm):
   name = StringField('What is your name?', validators= [DataRequired()])
   lastname = StringField('What is your last name?', validators= [DataRequired()])
   institution = StringField('What is your institution?', validators= [DataRequired()])
-  discipline = SelectField('What is your discipline?', choices=[('CS', 'Computer Science'), ('ENG', 'Engineering')], validators= [DataRequired()])
+  discipline = SelectField('What is your discipline?', choices=[('DSWA5', 'DSWA5'), ('DSBA4', 'DSBA4'), ('Gestão de projetos', 'Gestão de projetos')], validators= [DataRequired()])
 
   submit = SubmitField('Submit')
 
