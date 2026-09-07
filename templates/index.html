@@ -1,33 +1,60 @@
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 
-{% block title %}Flasky{% endblock %}
-
 {% block page_content %}
+<!-- FLASH -->
+{% for message in get_flashed_messages() %}
+<div class="alert alert-warning">
+    <button type="button" class="close" data-dismiss="alert">&times;</button>
+    {{ message }}
+</div>
+{% endfor %}
 
 <div class="page-header">
-    <h1>
-        Hello, {% if name %}{{ name }}{% else %}Stranger{% endif %}  {% if lastname %}{{ lastname }}{% else %}Stranger{% endif %}!
-    </h1>
-     <h2>
-        A sua Insituição de ensino é {% if institution %}{{ institution }}{% else %}NONE{% endif %}!
-    </h2>
-    <h2>
-        Está cursando a disciplina de {% if discipline %}{{ discipline }}{% else %}NONE{% endif %}!
-    </h2>
-    <h3>
-        O IP do computador remoto é: {% if ip %}{{ ip }}{% else %}NONE{% endif %}!
-    </h3>
-    <h3>
-        O host da aplicação é: {% if host %}{{ host }}{% else %}NONE{% endif %}!
-    </h3>
+{% if nome_completo %}
+    <h1>Olá, {{ nome_completo }}!</h1>
+    {% if not known %}
+        <p>Prazer em te conhecer!</p>
+    {% else %}
+        <p>Bom te ver novamente!</p>
+    {% endif %}
+{% else %}
+    <h1>Olá estranho!</h1>
+    <p>Qual o seu nome?</p>
+{% endif %}
 </div>
 
 {{ wtf.quick_form(form) }}
 
-<div class="time-info" style="margin-bottom: 30px;">
-    <p>The local date and time is {{ moment(current_time).format('LLL') }}.</p>
-    <p>That was {{ moment(current_time).fromNow(refresh=True) }}.</p>
+<br>
+
+<div class="page-header">
+    <h2>Relação de usuários cadastrados</h2>
+</div>
+
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nome do usuário</th>
+                <th>Função</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if users %}
+                {% for user in users %}
+                    <tr>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.role.name }}</td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="2">Nenhum usuário cadastrado.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
 </div>
 
 {% endblock %}
