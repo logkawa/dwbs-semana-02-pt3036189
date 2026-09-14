@@ -1,16 +1,24 @@
-# Desenvolvimento web com flask
+Aluno: Nathalia Ventura Kawakami
+Prontuário: PT3036189
 
-## Preparando o ambiente
--> Criar Venv: python -m venv venv
--> work on venv: .\venv\Scripts\Activate.ps1
--> Baixar arquivos: pip install -r requirements/common.txt
+## 1.Criando e Configurando o Banco de Dados
 
-## Criando DB
--> variável de acesso: $env:FLASK_APP = "hello.py"
-    • flask shell
-    • db.create_all()
-    • exit()
+```powershell
+$env:FLASK_APP = "hello.py"
+flask shell
+```
+
+```python
+from hello import db, Role, User
+
+db.create_all()
+
 [setattr(u, 'role', Role.query.filter_by(name='User').first()) for u in User.query.filter_by(role_id=None).all()]; db.session.commit()
 
-## Iniciando localmente
--> flask --app hello run --debug
+exit()
+```
+
+## 3. Iniciando
+```powershell
+flask --app hello run --debug
+```

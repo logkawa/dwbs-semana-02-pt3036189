@@ -19,6 +19,7 @@ from wtforms.validators import DataRequired
 
 # --- Banco de dados ---
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 # endregion
 
@@ -47,6 +48,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
+migrate = Migrate(app, db)
 
 # endregion
 
@@ -58,7 +60,8 @@ moment = Moment(app)
 # region
 
 class NameForm(FlaskForm):
-    name = StringField('Qual é o seu nome?', validators=[DataRequired()])
+    name = StringField('Qual o seu nome?', validators=[DataRequired()])
+    role = SelectField('Qual a sua função?', coerce=int)
     submit = SubmitField('Enviar')
 
 #endregion
@@ -117,14 +120,17 @@ def inject_time():
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = NameForm()
+    
+    # Preenche o dropdown com as roles no banco de dados
+    form.role.choices = [(r.id, r.name) for r in Role.query.order_by(Role.name).all()]
+    
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.name.data).first()
+        
         if user is None:
-            # Busca a role padrão 'User' no banco de dados
-            user_role = Role.query.filter_by(name='User').first()
+            selected_role = Role.query.get(form.role.data)
             
-            # Cria o novo usuário vinculando-o à role padrão
-            user = User(username=form.name.data, role=user_role)
+            user = User(username=form.name.data, role=selected_role)
             db.session.add(user)
             db.session.commit()
             
@@ -135,14 +141,15 @@ def index():
         session['name'] = form.name.data
         return redirect(url_for('index'))
     
-    # Consulta todos os usuários para preencher a tabela HTML
     todos_os_usuarios = User.query.all()
+    todas_as_funcoes = Role.query.all()
     
     return render_template('index.html',
                            form=form,
                            nome_completo=session.get('name'),
                            known=session.get('known', False),
-                           users=todos_os_usuarios)
+                           users=todos_os_usuarios,
+                           roles=todas_as_funcoes)
 
 # endregion
 
@@ -164,6 +171,10 @@ def internal_server_error(e):
     return render_template('500.html'), 500
 
 # endregion
+
+
+
+
 
 # --- SERVIDOR LOCAL ---
 if __name__ == '__main__':
