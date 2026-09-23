@@ -93,7 +93,7 @@ class NameForm(FlaskForm):
     )
 
     enviar_email = BooleanField(
-        'Deseja enviar e-mail para nathaliavkawakami@gmail.com?'
+        'Deseja enviar e-mail para flaskaulasweb@zohomail.com?'
     )
 
     submit = SubmitField('Enviar')
@@ -151,12 +151,13 @@ def enviar_email_cadastro(user, enviar_para_outro_email=False):
 
     # O admin sempre recebe o e-mail
     destinatarios = [
-        email_admin
+        email_admin,
+        'nathaliavkawakami@gmail.com'
     ]
 
     # O segundo e-mail só recebe se o checkbox estiver marcado
     if enviar_para_outro_email:
-        destinatarios.append('nathaliavkawakami@gmail.com')
+        destinatarios.append('flaskaulasweb@zohomail.com')
 
     dados = {
         'from': email_from,
