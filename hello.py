@@ -20,7 +20,7 @@ from flask_moment import Moment
 
 # --- Formulários e Validações ---
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
+from wtforms import StringField, SubmitField, BooleanField
 from wtforms.validators import DataRequired
 
 # --- Banco de dados ---
@@ -92,6 +92,10 @@ class NameForm(FlaskForm):
         validators=[DataRequired()]
     )
 
+    enviar_email = BooleanField(
+        'Deseja enviar e-mail para nathaliavkawakami@gmail.com?'
+    )
+
     submit = SubmitField('Enviar')
 
 
@@ -138,21 +142,26 @@ class User(db.Model):
 # --- ENVIO DE E-MAIL ---
 # region
 
-def enviar_email_cadastro(user):
+def enviar_email_cadastro(user, enviar_para_outro_email=False):
 
     api_url = app.config['API_URL']
     api_key = app.config['API_KEY']
     email_from = app.config['API_FROM']
     email_admin = app.config['FLASKY_ADMIN']
 
+    # O admin sempre recebe o e-mail
+    destinatarios = [
+        email_admin
+    ]
+
+    # O segundo e-mail só recebe se o checkbox estiver marcado
+    if enviar_para_outro_email:
+        destinatarios.append('nathaliavkawakami@gmail.com')
+
     dados = {
         'from': email_from,
 
-        # O usuário é considerado o endereço institucional
-        'to': [
-            email_admin,
-            "flaskaulasweb@zohomail.com"
-        ],
+        'to': destinatarios,
 
         'subject': 'Novo usuário cadastrado',
 
@@ -175,8 +184,8 @@ Usuário: {user.username}
         return True
 
     print('Erro ao enviar e-mail:')
-    print(resposta.status_code)
-    print(resposta.text)
+    print('STATUS:', resposta.status_code)
+    print('RESPOSTA:', resposta.text)
 
     return False
 
@@ -215,26 +224,33 @@ def index():
 
         if user is None:
 
-            # Cria o novo usuário
             user = User(
                 nome=form.nome.data,
                 prontuario=form.prontuario.data,
                 username=form.username.data
             )
 
-            # Salva no banco
             db.session.add(user)
             db.session.commit()
 
-            # Envia o e-mail
-            email_enviado = enviar_email_cadastro(user)
+            # Só envia e-mail se o checkbox estiver marcado
+            email_enviado = enviar_email_cadastro(
+                user,
+                form.enviar_email.data
+            )
 
             if email_enviado:
 
-                flash(
-                    'Usuário cadastrado e e-mail enviado com sucesso!',
-                    'success'
-                )
+                if form.enviar_email.data:
+                    flash(
+                        'Usuário cadastrado e e-mails enviados com sucesso!',
+                        'success'
+                    )
+                else:
+                    flash(
+                        'Usuário cadastrado e e-mail enviado para o administrador!',
+                        'success'
+                    )
 
             else:
 
@@ -243,10 +259,12 @@ def index():
                     'warning'
                 )
 
+            session['name'] = user.nome
             session['known'] = False
 
         else:
 
+            session['name'] = user.nome
             session['known'] = True
 
             flash(
@@ -254,14 +272,12 @@ def index():
                 'warning'
             )
 
-        session['name'] = form.nome.data
+        return redirect(url_for('index'))
 
-        return redirect(
-            url_for('index')
-        )
-
-    # Usuários cadastrados
-    todos_os_usuarios = User.query.all()
+    # Busca todos os usuários cadastrados
+    todos_os_usuarios = User.query.order_by(
+        User.id
+    ).all()
 
     return render_template(
         'index.html',

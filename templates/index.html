@@ -3,17 +3,29 @@
 
 {% block page_content %}
 
-<!-- FLASH -->
+<!-- Mensagens -->
 {% for message in get_flashed_messages() %}
+
 <div class="alert alert-warning">
-    <button type="button" class="close" data-dismiss="alert">&times;</button>
+    <button
+        type="button"
+        class="close"
+        data-dismiss="alert">
+        &times;
+    </button>
+
     {{ message }}
 </div>
+
 {% endfor %}
 
-<!-- CABEÇALHO -->
+
+<!-- Formulário -->
+
 <div class="page-header">
+
     {% if nome_completo %}
+
         <h1>Olá, {{ nome_completo }}!</h1>
 
         {% if not known %}
@@ -23,12 +35,69 @@
         {% endif %}
 
     {% else %}
+
         <h1>Olá estranho!</h1>
         <p>Prazer em te conhecer!</p>
+
     {% endif %}
+
 </div>
 
-<!-- FORMULÁRIO -->
+
 {{ wtf.quick_form(form) }}
+
+
+<br>
+<br>
+
+
+<!-- Tabela de usuários -->
+
+<h2>Relação de usuários cadastrados</h2>
+
+<table class="table table-hover">
+
+    <thead>
+
+        <tr>
+
+            <th>Nome</th>
+            <th>Prontuário</th>
+            <th>Usuário</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+        {% for user in users %}
+
+        <tr>
+
+            <td>{{ user.nome }}</td>
+
+            <td>{{ user.prontuario }}</td>
+
+            <td>{{ user.username }}</td>
+
+        </tr>
+
+        {% else %}
+
+        <tr>
+
+            <td colspan="3">
+                Nenhum usuário cadastrado.
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </tbody>
+
+</table>
+
 
 {% endblock %}
