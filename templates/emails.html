@@ -1,0 +1,71 @@
+
+{% extends "base.html" %}
+
+{% block page_content %}
+
+<div class="page-header">
+    <h1>E-mails enviados</h1>
+    <p>
+        Relação de e-mails enviados para o administrador do sistema,
+        notificando o cadastro de novos usuários.
+    </p>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>De</th>
+            <th>Para</th>
+            <th>Assunto</th>
+            <th>Texto</th>
+            <th>Data/Hora</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for email in emails %}
+        <tr>
+            <td>
+                {% if email.usuario %}
+                    {{ email.usuario.name }}
+                {% else %}
+                    Usuário não encontrado
+                {% endif %}
+            </td>
+
+            <td>
+                {{ email.destinatarios }}
+            </td>
+
+            <td>
+                {{ email.assunto }}
+            </td>
+
+            <td>
+                {{ email.corpo }}
+            </td>
+
+            <td>
+                {{ email.data_envio.strftime('%d/%m/%Y %H:%M:%S') }}
+            </td>
+
+            <td>
+                {% if email.status == 'Enviado' %}
+                    <span class="label label-success">Enviado</span>
+                {% else %}
+                    <span class="label label-danger">Falha</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6">
+                Nenhuma tentativa de envio registrada.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

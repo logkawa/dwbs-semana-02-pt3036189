@@ -3,9 +3,7 @@
 
 {% block page_content %}
 
-<!-- Mensagens -->
 {% for message in get_flashed_messages() %}
-
 <div class="alert alert-warning">
     <button
         type="button"
@@ -13,91 +11,61 @@
         data-dismiss="alert">
         &times;
     </button>
-
     {{ message }}
 </div>
-
 {% endfor %}
 
-
-<!-- Formulário -->
-
 <div class="page-header">
-
     {% if nome_completo %}
-
         <h1>Olá, {{ nome_completo }}!</h1>
 
-        {% if not known %}
-            <p>Prazer em te conhecer!</p>
-        {% else %}
+        {% if known %}
             <p>Bom te ver novamente!</p>
+        {% else %}
+            <p>Prazer em conhecê-lo!</p>
         {% endif %}
-
     {% else %}
-
-        <h1>Olá estranho!</h1>
-        <p>Prazer em te conhecer!</p>
-
+        <h1>Olá, Stranger!</h1>
+        <p>Prazer em conhecê-lo!</p>
     {% endif %}
 
+    <p>
+        E-mail enviado para o
+        <strong>Administrador do sistema</strong>,
+        notificando o cadastro de um novo usuário.
+    </p>
 </div>
 
+<hr>
 
+<!-- Formulário no topo -->
 {{ wtf.quick_form(form) }}
 
-
 <br>
-<br>
-
 
 <!-- Tabela de usuários -->
-
 <h2>Relação de usuários cadastrados</h2>
 
 <table class="table table-hover">
-
     <thead>
-
         <tr>
-
-            <th>Nome</th>
-            <th>Prontuário</th>
-            <th>Usuário</th>
-
+            <th>Nome do usuário</th>
+            <th>Função</th>
         </tr>
-
     </thead>
 
     <tbody>
-
         {% for user in users %}
-
         <tr>
-
-            <td>{{ user.nome }}</td>
-
-            <td>{{ user.prontuario }}</td>
-
-            <td>{{ user.username }}</td>
-
+            <td>{{ user.name }}</td>
+            <td>{{ user.role.name }}</td>
         </tr>
-
         {% else %}
-
         <tr>
-
-            <td colspan="3">
-                Nenhum usuário cadastrado.
-            </td>
-
+            <td colspan="2">Nenhum usuário cadastrado.</td>
         </tr>
-
         {% endfor %}
-
     </tbody>
-
 </table>
-
 
 {% endblock %}

@@ -1,94 +1,51 @@
-# --- IMPORTAÇÕES DO FLASK ---
-# region
-
-# --- Bibliotecas padrão Python ---
+# --- IMPORTAÇÕES ---
 import os
 from datetime import datetime
 
-# --- Requisições HTTP ---
 import requests
-
-# --- Variáveis de ambiente ---
 from dotenv import load_dotenv
 
-# --- Núcleo Flask ---
 from flask import Flask, render_template, session, redirect, url_for, flash
-
-# --- Interface e utilidades ---
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 
-# --- Formulários e Validações ---
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, BooleanField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Email
 
-# --- Banco de dados ---
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
-# endregion
 
-
-# --- CONFIGURAÇÕES BÁSICAS ---
-# region
-
-# Carrega as variáveis do arquivo .env
+# --- CONFIGURAÇÕES ---
 basedir = os.path.abspath(os.path.dirname(__file__))
-
 load_dotenv(os.path.join(basedir, '.env'))
 
 app = Flask(__name__)
 
-# --- Variáveis de ambiente ---
 app.config['FLASKY_ADMIN'] = os.environ.get('FLASKY_ADMIN')
-app.config['FLASKY_APP'] = os.environ.get('FLASKY_APP')
-
 app.config['API_URL'] = os.environ.get('API_URL')
 app.config['API_KEY'] = os.environ.get('API_KEY')
 app.config['API_FROM'] = os.environ.get('API_FROM')
-
-# --- Chave secreta ---
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 
-# --- Banco de dados ---
 app.config['SQLALCHEMY_DATABASE_URI'] = (
     'sqlite:///' + os.path.join(basedir, 'data.sqlite')
 )
-
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# endregion
 
-
-# --- INICIANDO EXTENSÕES ---
-# region
-
+# --- EXTENSÕES ---
 db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
 migrate = Migrate(app, db)
 
-# endregion
 
-
-# --- CLASSE DO FORMULÁRIO ---
-# region
-
+# --- FORMULÁRIO ---
 class NameForm(FlaskForm):
-
-    nome = StringField(
-        'Qual o seu nome?',
-        validators=[DataRequired()]
-    )
-
-    prontuario = StringField(
-        'Qual o seu prontuário?',
-        validators=[DataRequired()]
-    )
-
-    username = StringField(
-        'Qual o seu usuário?',
+    name = StringField(
+        'Qual é o seu nome?',
         validators=[DataRequired()]
     )
 
@@ -96,188 +53,241 @@ class NameForm(FlaskForm):
         'Deseja enviar e-mail para flaskaulasweb@zohomail.com?'
     )
 
-    submit = SubmitField('Enviar')
+    submit = SubmitField('Submit')
 
 
-# endregion
+# --- MODELOS DO BANCO ---
+class Role(db.Model):
+    __tablename__ = 'roles'
 
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), unique=True, nullable=False)
 
-# --- MODELO DO BANCO DE DADOS ---
-# region
+    users = db.relationship('User', backref='role')
+
 
 class User(db.Model):
-
     __tablename__ = 'users'
 
-    id = db.Column(
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), unique=True, index=True, nullable=False)
+
+    role_id = db.Column(
         db.Integer,
-        primary_key=True
-    )
-
-    nome = db.Column(
-        db.String(100),
+        db.ForeignKey('roles.id'),
         nullable=False
     )
 
-    prontuario = db.Column(
-        db.String(20),
-        unique=True,
+class EmailLog(db.Model):
+    __tablename__ = 'email_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=True
+    )
+
+    destinatarios = db.Column(
+        db.Text,
         nullable=False
     )
 
-    username = db.Column(
-        db.String(100),
-        unique=True,
-        index=True,
+    assunto = db.Column(
+        db.String(200),
         nullable=False
     )
 
-    def __repr__(self):
-        return f'<User {self.username}>'
+    corpo = db.Column(
+        db.Text,
+        nullable=False
+    )
 
+    data_envio = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
 
-# endregion
+    status = db.Column(
+        db.String(30),
+        nullable=False
+    )
+
+    codigo_resposta = db.Column(
+        db.Integer,
+        nullable=True
+    )
+
+    usuario = db.relationship('User', backref='emails')
 
 
 # --- ENVIO DE E-MAIL ---
-# region
 
-def enviar_email_cadastro(user, enviar_para_outro_email=False):
-
+def enviar_email_cadastro(user, enviar_para_zoho=False):
     api_url = app.config['API_URL']
     api_key = app.config['API_KEY']
     email_from = app.config['API_FROM']
     email_admin = app.config['FLASKY_ADMIN']
 
-    # O admin sempre recebe o e-mail
+    # Destinatários fixos
     destinatarios = [
         email_admin,
         'nathaliavkawakami@gmail.com'
     ]
 
-    # O segundo e-mail só recebe se o checkbox estiver marcado
-    if enviar_para_outro_email:
+    # O Zoho só recebe se o checkbox estiver marcado
+    if enviar_para_zoho:
         destinatarios.append('flaskaulasweb@zohomail.com')
 
-    dados = {
-        'from': email_from,
+    # Remove valores vazios e destinatários duplicados
+    destinatarios = list(dict.fromkeys(
+        email.strip()
+        for email in destinatarios
+        if email and email.strip()
+    ))
 
-        'to': destinatarios,
+    assunto = 'Novo usuário cadastrado'
 
-        'subject': 'Novo usuário cadastrado',
-
-        'text': f"""
+    corpo = f"""
 Novo usuário cadastrado.
 
-Prontuário: {user.prontuario}
-Nome do aluno: {user.nome}
-Usuário: {user.username}
+Prontuário: PT3036189
+Nome do aluno: Nathalia Kawakami
+Usuário cadastrado: {user.name}
 """
-    }
 
-    resposta = requests.post(
-        api_url,
-        auth=('api', api_key),
-        data=dados
-    )
+    status = 'Falha'
+    codigo_resposta = None
 
-    if resposta.status_code == 200:
-        return True
+    try:
+        if not all([api_url, api_key, email_from]):
+            raise ValueError(
+                'API_URL, API_KEY ou API_FROM não configurados no .env.'
+            )
 
-    print('Erro ao enviar e-mail:')
-    print('STATUS:', resposta.status_code)
-    print('RESPOSTA:', resposta.text)
+        if not email_admin:
+            raise ValueError(
+                'FLASKY_ADMIN não está configurado no .env.'
+            )
 
-    return False
+        resposta = requests.post(
+            api_url,
+            auth=('api', api_key),
+            data={
+                'from': email_from,
+                'to': destinatarios,
+                'subject': assunto,
+                'text': corpo
+            },
+            timeout=15
+        )
+
+        codigo_resposta = resposta.status_code
+
+        if resposta.status_code == 200:
+            status = 'Enviado'
+        else:
+            print('Erro ao enviar e-mail:')
+            print('Status:', resposta.status_code)
+            print('Resposta:', resposta.text)
+
+    except (requests.RequestException, ValueError) as erro:
+        print('Falha no envio de e-mail:', erro)
+
+    finally:
+        # Registra a tentativa no histórico
+        registro = EmailLog(
+            user_id=user.id,
+            destinatarios=', '.join(destinatarios),
+            assunto=assunto,
+            corpo=corpo,
+            status=status,
+            codigo_resposta=codigo_resposta
+        )
+
+        db.session.add(registro)
+        db.session.commit()
+
+    return status == 'Enviado'
 
 
-# endregion
-
-
-# --- CONTEXTOS GLOBAIS ---
-# region
-
+# --- CONTEXTO GLOBAL ---
 @app.context_processor
 def inject_time():
-
-    return dict(
-        current_time=datetime.utcnow()
-    )
+    return {'current_time': datetime.utcnow()}
 
 
-# endregion
-
-
-# --- ROTAS ---
-# region
+# --- ROTA PRINCIPAL ---
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-
     form = NameForm()
 
     if form.validate_on_submit():
+        nome = form.name.data.strip()
 
-        # Verifica se o usuário já existe
-        user = User.query.filter_by(
-            username=form.username.data
-        ).first()
+        # Verifica se o usuário já está cadastrado
+        user = User.query.filter_by(name=nome).first()
 
-        if user is None:
-
-            user = User(
-                nome=form.nome.data,
-                prontuario=form.prontuario.data,
-                username=form.username.data
-            )
-
-            db.session.add(user)
-            db.session.commit()
-
-            # Só envia e-mail se o checkbox estiver marcado
-            email_enviado = enviar_email_cadastro(
-                user,
-                form.enviar_email.data
-            )
-
-            if email_enviado:
-
-                if form.enviar_email.data:
-                    flash(
-                        'Usuário cadastrado e e-mails enviados com sucesso!',
-                        'success'
-                    )
-                else:
-                    flash(
-                        'Usuário cadastrado e e-mail enviado para o administrador!',
-                        'success'
-                    )
-
-            else:
-
-                flash(
-                    'Usuário cadastrado, mas ocorreu um erro ao enviar o e-mail.',
-                    'warning'
-                )
-
-            session['name'] = user.nome
-            session['known'] = False
-
-        else:
-
-            session['name'] = user.nome
+        if user is not None:
+            session['name'] = user.name
             session['known'] = True
 
+            flash('Este usuário já está cadastrado.', 'warning')
+            return redirect(url_for('index'))
+
+        # Busca a função padrão para o novo usuário
+        role_user = Role.query.filter_by(name='User').first()
+
+        if role_user is None:
             flash(
-                'Este usuário já está cadastrado.',
+                'A função User não existe no banco de dados. '
+                'Verifique a inicialização das funções.',
+                'danger'
+            )
+            return redirect(url_for('index'))
+
+        # Cria e salva o usuário
+        user = User(
+            name=nome,
+            role=role_user
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        # Envia o e-mail e registra o resultado no histórico
+        email_enviado = enviar_email_cadastro(
+            user,
+            form.enviar_email.data
+        )
+
+        # Guarda informações da sessão
+        session['name'] = user.name
+        session['known'] = False
+
+        if email_enviado:
+            flash(
+                'Usuário cadastrado e e-mail aceito pelo Mailgun.',
+                'success'
+            )
+        else:
+            flash(
+                'Usuário cadastrado, mas houve uma falha no envio. '
+                'Consulte o histórico de e-mails.',
                 'warning'
             )
 
         return redirect(url_for('index'))
 
-    # Busca todos os usuários cadastrados
-    todos_os_usuarios = User.query.order_by(
-        User.id
+    # Lista todos os usuários cadastrados
+    usuarios = User.query.order_by(User.id).all()
+
+    # Lista o histórico de e-mails, do mais recente ao mais antigo
+    historico_emails = EmailLog.query.order_by(
+        EmailLog.data_envio.desc()
     ).all()
 
     return render_template(
@@ -285,36 +295,33 @@ def index():
         form=form,
         nome_completo=session.get('name'),
         known=session.get('known', False),
-        users=todos_os_usuarios
+        users=usuarios,
+        emails=historico_emails
     )
 
 
-# endregion
-
-
-# --- ERROR HANDLING ---
-# region
-
-@app.errorhandler(404)
-def page_not_found(e):
+@app.route('/emails')
+def emails_enviados():
+    historico_emails = EmailLog.query.order_by(
+        EmailLog.data_envio.desc()
+    ).all()
 
     return render_template(
-        '404.html'
-    ), 404
+        'emails.html',
+        emails=historico_emails
+    )
+
+# --- TRATAMENTO DE ERROS ---
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
 
 @app.errorhandler(500)
 def internal_server_error(e):
-
-    return render_template(
-        '500.html'
-    ), 500
+    return render_template('500.html'), 500
 
 
-# endregion
-
-
-# --- SERVIDOR LOCAL ---
+# --- EXECUÇÃO LOCAL ---
 if __name__ == '__main__':
-
     app.run(debug=True)
